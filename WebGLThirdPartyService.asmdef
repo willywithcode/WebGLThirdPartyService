@@ -1,7 +1,14 @@
 {
     "name": "WebGLThirdPartyService",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "GameFoundation.Scripts",
+        "ThirdPartyService",
+        "VContainer",
+        "MessagePipe",
+        "UniTask",
+        "BananaParty.YandexGames"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

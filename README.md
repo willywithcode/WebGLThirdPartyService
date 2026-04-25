@@ -6,6 +6,9 @@ Wrapper module for WebGL SDKs, following the same pattern as `ThirdParty`.
 
 ## Poki SDK
 
+Detailed guide:
+- `ServiceImplementation/Poki/README.md`
+
 ### Structure
 
 ```
@@ -115,6 +118,114 @@ this.adsService.ShowRewardedAd(
 | `GetLanguage()` | Returns the user's browser language | Localization |
 | `IsAdBlocked()` | Checks if the user has an ad blocker | Hide rewarded button if blocked |
 | `LogError(string)` | Sends an error to the Poki dashboard | Catch critical exceptions |
+
+---
+
+## Yandex Games SDK
+
+Detailed guide:
+- `ServiceImplementation/Yandex/README.md`
+
+### Structure
+
+```
+ServiceImplementation/Yandex/
+├── YandexGamesSDKService.cs      main service, wraps BananaParty.YandexGames package
+├── YandexCloudSaveService.cs     JSON cloud save wrapper with local cache
+├── Setup.cs                      bootstraps the SDK automatically via VContainer
+├── Ads/
+│   ├── YandexInterstitialAdsService.cs
+│   └── YandexRewardedAdsService.cs
+├── LocalData/
+│   ├── YandexLocalData.cs
+│   ├── YandexLocalDataService.cs
+│   └── YandexCloudStateLocalDataService.cs
+└── DI/
+    └── YandexGamesVContainer.cs
+Core/
+└── Yandex/
+    ├── IYandexGamesService.cs
+    ├── IYandexCloudSaveService.cs
+    ├── IYandexLocalDataService.cs
+    └── YandexCloudSaveResult.cs
+```
+
+---
+
+### Enabling Yandex
+
+Add `YANDEX_GAMES` to **Scripting Define Symbols** in Unity Player Settings → **WebGL platform only**.
+
+This wrapper expects package `com.bananaparty.yandexgames` to be installed in the project.
+
+Because this module does not modify `Assets/ThirdParty`, register it from your own WebGL-specific `LifetimeScope`:
+
+```csharp
+builder.RegisterYandexGamesServices();
+```
+
+> Do not enable on Android/iOS/Standalone builds. The underlying SDK only works in WebGL runtime on Yandex Games.
+
+---
+
+### SDK Initialization
+
+`Setup.cs` implements `IAsyncStartable` (VContainer) and runs automatically on app start.
+
+Automatic sequence:
+1. Check whether the build is actually running on Yandex Games
+2. `YandexGamesSdk.Initialize()`
+3. Initialize interstitial/rewarded adapters
+4. `YandexGamesSdk.GameReady()`
+
+If the build is opened outside Yandex Games, initialization exits quietly and all wrappers become safe no-ops/fail-fast callbacks.
+
+---
+
+### Injecting and Using `IYandexGamesService`
+
+```csharp
+public class YandexBootstrap
+{
+    private readonly IYandexGamesService yandexGamesService;
+
+    public YandexBootstrap(IYandexGamesService yandexGamesService)
+    {
+        this.yandexGamesService = yandexGamesService;
+    }
+
+    public void ShowRewardedAd()
+    {
+        this.yandexGamesService.ShowRewardedAd(
+            onRewardedCallback: () => UnityEngine.Debug.Log("Reward granted"),
+            onCloseCallback: () => UnityEngine.Debug.Log("Ad closed")
+        );
+    }
+
+    public void LoadCloudSave()
+    {
+        this.yandexGamesService.GetCloudSaveData(data => UnityEngine.Debug.Log(data));
+    }
+}
+```
+
+---
+
+### Supported Features
+
+`IYandexGamesService` wraps the main features provided by `com.bananaparty.yandexgames`:
+
+- SDK initialization and `GameReady`
+- Environment access
+- Authorization and profile permission flow
+- Profile data and cloud save
+- Leaderboards
+- Billing
+- Shortcut prompt
+- Review popup
+- Interstitial, rewarded, and sticky ads
+
+Ads are also exposed through `IInterstitialAdsService` / `IRewardedAdsService` adapters inside `ServiceImplementation/Yandex/Ads/`.
 
 ---
 
